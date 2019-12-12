@@ -1,5 +1,5 @@
-MIXIN = skeletor
-PKG = get.porter.sh/mixin/$(MIXIN)
+MIXIN = packer
+PKG = github.com/vdice/porter-$(MIXIN)
 SHELL = bash
 
 PORTER_HOME ?= $(HOME)/.porter
@@ -113,4 +113,4 @@ clean: clean-packr
 	-rm -fr bin/
 
 clean-packr: packr2
-	cd pkg/skeletor && packr2 clean
+	cd pkg/packer && packr2 clean
