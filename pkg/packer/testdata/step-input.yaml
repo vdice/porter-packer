@@ -1,10 +1,12 @@
 install:
   - packer:
-      description: "Summon Minion"
+      description: "Packer Build"
       arguments:
-      - "man-e-faces"
+        - "build"
       flags:
-        species: "human"
+        force:
+        machine-readable:
+        on-error: cleanup
       outputs:
-        - name: "VICTORY"
-          jsonPath: "$Id"
+        - name: deploymentName
+          regex: "DeploymentName    : '(.*)'"

@@ -45,6 +45,7 @@ type Steps struct {
 
 var _ builder.ExecutableStep = Step{}
 var _ builder.StepWithOutputs = Step{}
+var _ builder.HasCustomDashes = Step{}
 
 type Step struct {
 	Name        string        `yaml:"name"`
@@ -75,6 +76,14 @@ func (s Step) GetOutputs() []builder.Output {
 	return outputs
 }
 
+func (s Step) GetDashes() builder.Dashes {
+	// All flags in the packer cli use a single dash
+	return builder.Dashes{
+		Long:  "-",
+		Short: "-",
+	}
+}
+
 var _ builder.OutputJsonPath = Output{}
 var _ builder.OutputFile = Output{}
 var _ builder.OutputRegex = Output{}
@@ -83,7 +92,6 @@ type Output struct {
 	Name string `yaml:"name"`
 
 	// See https://porter.sh/mixins/exec/#outputs
-	// TODO: If your mixin doesn't support these output types, you can remove these and the interface assertions above, and from #/definitions/outputs in schema.json
 	JsonPath string `yaml:"jsonPath,omitempty"`
 	FilePath string `yaml:"path,omitempty"`
 	Regex    string `yaml:"regex,omitempty"`

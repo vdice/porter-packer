@@ -21,13 +21,15 @@ func TestMixin_UnmarshalStep(t *testing.T) {
 	require.Len(t, action.Steps, 1)
 
 	step := action.Steps[0]
-	assert.Equal(t, "Summon Minion", step.Description)
+	assert.Equal(t, "Packer Build", step.Description)
 	assert.NotEmpty(t, step.Outputs)
-	assert.Equal(t, Output{Name: "VICTORY", JsonPath: "$Id"}, step.Outputs[0])
+	assert.Equal(t, Output{Name: "deploymentName", Regex: "DeploymentName    : '(.*)'"}, step.Outputs[0])
 
 	require.Len(t, step.Arguments, 1)
-	assert.Equal(t, "man-e-faces", step.Arguments[0])
+	assert.Equal(t, "build", step.Arguments[0])
 
-	require.Len(t, step.Flags, 1)
-	assert.Equal(t, builder.NewFlag("species", "human"), step.Flags[0])
+	require.Len(t, step.Flags, 3)
+	assert.Equal(t, builder.NewFlag("force"), step.Flags[0])
+	assert.Equal(t, builder.NewFlag("machine-readable"), step.Flags[1])
+	assert.Equal(t, builder.NewFlag("on-error", "cleanup"), step.Flags[2])
 }
