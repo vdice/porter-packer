@@ -24,7 +24,7 @@ func TestMixin_Execute(t *testing.T) {
 		wantOutput  string // Name of output that you expect to be created
 		wantCommand string // Full command that you expect to be called based on the input YAML
 	}{
-		{"action", "testdata/step-input.yaml", "deploymentName",
+		{"action", "testdata/step-input.yaml", "deployment_name",
 			"packer build -force -machine-readable -on-error cleanup"},
 	}
 

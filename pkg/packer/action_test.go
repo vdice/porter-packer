@@ -23,7 +23,7 @@ func TestMixin_UnmarshalStep(t *testing.T) {
 	step := action.Steps[0]
 	assert.Equal(t, "Packer Build", step.Description)
 	assert.NotEmpty(t, step.Outputs)
-	assert.Equal(t, Output{Name: "deploymentName", Regex: "DeploymentName    : '(.*)'"}, step.Outputs[0])
+	assert.Equal(t, Output{Name: "deployment_name", Regex: "DeploymentName([^\\s:'])"}, step.Outputs[0])
 
 	require.Len(t, step.Arguments, 1)
 	assert.Equal(t, "build", step.Arguments[0])

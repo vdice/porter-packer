@@ -8,5 +8,5 @@ install:
         machine-readable:
         on-error: cleanup
       outputs:
-        - name: deploymentName
-          regex: "DeploymentName    : '(.*)'"
+        - name: deployment_name
+          regex: "DeploymentName([^\\s:'])"

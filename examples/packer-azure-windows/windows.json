@@ -1,0 +1,71 @@
+{
+  "variables": {
+    "client_id": "{{env `ARM_CLIENT_ID`}}",
+    "client_secret": "{{env `ARM_CLIENT_SECRET`}}",
+    "resource_group": "{{env `ARM_RESOURCE_GROUP`}}",
+    "subscription_id": "{{env `ARM_SUBSCRIPTION_ID`}}",
+    "tenant_id": "{{env `ARM_TENANT_ID`}}"
+  },
+  "builders": [
+    {
+      "type": "azure-arm",
+        
+      "client_id": "{{user `client_id`}}",
+      "client_secret": "{{user `client_secret`}}",
+      "subscription_id": "{{user `subscription_id`}}",
+      "tenant_id": "{{user `tenant_id`}}",
+
+      "managed_image_resource_group_name": "{{user `resource_group`}}",
+      "managed_image_name": "myPackerImage",
+
+      "os_type": "Windows",
+      "image_publisher": "MicrosoftWindowsServer",
+      "image_offer": "WindowsServer",
+      "image_sku": "2016-Datacenter",
+
+      "communicator": "winrm",
+      "winrm_use_ssl": true,
+      "winrm_insecure": true,
+      "winrm_timeout": "15m",
+      "winrm_username": "packer",  
+
+      "azure_tags": {
+        "dept": "engineering",
+        "task": "image deployment"
+      },
+
+      "build_resource_group_name": "{{user `resource_group`}}",
+      "vm_size": "Standard_D4_v3"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "powershell",
+      "elevated_user": "packer",
+      "elevated_password": "{{.WinRMPassword}}",
+      "inline": [
+        "# Turn off PowerShell execution policy restrictions",
+        "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope LocalMachine",
+        "# Install Chocolatey",
+        "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))",
+        "# Install Docker Version Manager",
+        "iwr 'https://howtowhale.github.io/dvm/downloads/latest/install.ps1' -UseBasicParsing | iex",
+        ". 'C:\\Users\\packer\\.dvm\\dvm.ps1'",
+        "setx PATH \"%PATH%;C:\\Users\\packer\\.dvm\"",
+        "# Install Docker",
+        "dvm ls-remote",
+        "dvm install 1.13.1",
+        "# Install more dev dependencies",
+        "choco install -y make git golang"
+      ]
+    },
+    {
+      "type": "powershell",
+      "inline": [
+        "Add-WindowsFeature Web-Server",
+        "& $env:SystemRoot\\System32\\Sysprep\\Sysprep.exe /oobe /generalize /quiet /quit",
+        "while($true) { $imageState = Get-ItemProperty HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Setup\\State | Select ImageState; if($imageState.ImageState -ne 'IMAGE_STATE_GENERALIZE_RESEAL_TO_OOBE') { Write-Output $imageState.ImageState; Start-Sleep -s 10  } else { break } }"
+      ]
+    }
+  ]
+}

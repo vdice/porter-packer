@@ -1,0 +1,156 @@
+name: packer-azure-windows
+version: 0.1.0
+description: "An example using the Packer mixin to create a Windows VM in Azure"
+tag: vdice/packer-azure-windows-bundle:v0.1.0
+
+mixins:
+  - packer
+  - az
+  - exec
+
+credentials:
+  # Azure creds for packer/az
+  - name: client_id
+    env: ARM_CLIENT_ID
+  - name: client_secret
+    env: ARM_CLIENT_SECRET
+  - name: subscription_id
+    env: ARM_SUBSCRIPTION_ID
+  - name: tenant_id
+    env: ARM_TENANT_ID
+
+parameters:
+  # Image details for packer
+  - name: image_name
+    type: string
+    default: "myPackerImage"
+    env: IMAGE_NAME
+  # NOTE: this resource group will be deleted entirely when running uninstall
+  # Therefore, it isn't recommended to supply a pre-existing resource group
+  # that may contain other artifacts
+  - name: resource_group
+    type: string
+    default: "myPackerResourceGroup"
+    env: ARM_RESOURCE_GROUP
+  - name: location
+    type: string
+    default: "eastus"
+
+  # VM details for az
+  - name: vm_name
+    type: string
+    default: "myPackerVM"
+  - name: vm_admin_username
+    type: string
+    default: "packer-admin"
+  - name: vm_admin_password
+    type: string
+    sensitive: true
+    applyTo:
+      - install
+
+outputs:
+  - name: keyvault_name
+    type: string
+    applyTo:
+      - install
+
+install:
+  - az:
+      description: "Azure CLI login"
+      arguments:
+        - login
+      flags:
+        service-principal:
+        username: "{{ bundle.credentials.client_id }}"
+        password: "{{ bundle.credentials.client_secret }}"
+        tenant: "{{ bundle.credentials.tenant_id }}"
+
+  - az:
+      description: "Azure CLI set subscription"
+      arguments:
+        - account
+        - set
+      flags:
+        s: "{{ bundle.credentials.subscription_id }}"
+
+  - az:
+      description: "Create the resource group ({{ bundle.parameters.resource_group }}) to hold the Packer artifacts"
+      arguments:
+        - group
+        - create
+      flags:
+        name: "{{ bundle.parameters.resource_group }}"
+        location: "{{ bundle.parameters.location }}"
+
+  - packer:
+      description: "Packer Build Windows Image on Azure"
+      arguments:
+        - build
+        - -force
+        - windows.json
+      # TODO: needs https://github.com/deislabs/porter/issues/806 for this to work
+      # flags:
+      #   force:
+      outputs:
+        - name: keyvault_name
+          regex: ".*Key Vault Name.*'(.*)'"
+
+  - az:
+      description: "Create Azure VM from Windows Image"
+      arguments:
+        - vm
+        - create
+      flags:
+        name: "{{ bundle.parameters.vm_name }}"
+        image: "{{ bundle.parameters.image_name }}"
+        resource-group: "{{ bundle.parameters.resource_group }}"
+        location: "{{ bundle.parameters.location}}"
+        admin-username: "{{ bundle.parameters.vm_admin_username }}"
+        admin-password: "{{ bundle.parameters.vm_admin_password }}"
+
+  - az:
+      description: "Open Port 80"
+      arguments:
+        - vm
+        - open-port
+      flags:
+        port: 80
+        name: "{{ bundle.parameters.vm_name }}"
+        resource-group: "{{ bundle.parameters.resource_group }}"
+
+upgrade:
+  - exec:
+      description: "No-op"
+      command: bash
+      arguments:
+        - echo "Upgrade is currently a no-op"
+
+uninstall:
+  - az:
+      description: "Azure CLI login"
+      arguments:
+        - login
+      flags:
+        service-principal:
+        username: "{{ bundle.credentials.client_id }}"
+        password: "{{ bundle.credentials.client_secret }}"
+        tenant: "{{ bundle.credentials.tenant_id }}"
+
+  - az:
+      description: "Azure CLI set subscription"
+      arguments:
+        - account
+        - set
+      flags:
+        s: "{{ bundle.credentials.subscription_id }}"
+
+  - az:
+      description: "Delete the resource group ({{ bundle.parameters.resource_group }}) holding the Packer artifacts"
+      arguments:
+        - group
+        - delete
+        - --yes
+        - --no-wait
+      flags:
+        name: "{{ bundle.parameters.resource_group }}"
