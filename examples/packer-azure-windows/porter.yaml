@@ -25,6 +25,9 @@ parameters:
     type: string
     default: "myPackerImage"
     env: IMAGE_NAME
+  # NOTE: this resource group will be deleted entirely when running uninstall
+  # Therefore, it isn't recommended to supply a pre-existing resource group
+  # that may contain other artifacts
   - name: resource_group
     type: string
     default: "myPackerResourceGroup"
@@ -43,24 +46,14 @@ parameters:
   - name: vm_admin_password
     type: string
     sensitive: true
-  - name: vm_vnet_name
-    type: string
-    default: "myPackerVMVNET"
-  - name: vm_subnet_name
-    type: string
-    default: "myPackerVMSubnet"
-  - name: vm_nsg_name
-    type: string
-    default: "myPackerVMNSG"
-  - name: vm_public_ip_name
-    type: string
-    default: "myPackerVMPublicIP"
+    applyTo:
+      - install
 
 outputs:
-  - name: deployment_name
-    type: string
   - name: keyvault_name
     type: string
+    applyTo:
+      - install
 
 install:
   - az:
@@ -82,7 +75,7 @@ install:
         s: "{{ bundle.credentials.subscription_id }}"
 
   - az:
-      description: "Create the resource group to hold the Packer artifacts"
+      description: "Create the resource group ({{ bundle.parameters.resource_group }}) to hold the Packer artifacts"
       arguments:
         - group
         - create
@@ -100,11 +93,8 @@ install:
       # flags:
       #   force:
       outputs:
-        # TODO: these need testing
-        - name: deployment_name
-          regex: "DeploymentName([^\\s:'])"
         - name: keyvault_name
-          regex: "Keyv Vault Name([^\\s:'])"
+          regex: ".*Key Vault Name.*'(.*)'"
 
   - az:
       description: "Create Azure VM from Windows Image"
@@ -116,10 +106,6 @@ install:
         image: "{{ bundle.parameters.image_name }}"
         resource-group: "{{ bundle.parameters.resource_group }}"
         location: "{{ bundle.parameters.location}}"
-        vnet-name: "{{ bundle.parameters.vm_vnet_name }}"
-        subnet: "{{ bundle.parameters.vm_subnet_name }}"
-        nsg: "{{ bundle.parameters.vm_nsg_name }}"
-        public-ip-address: "{{ bundle.parameters.vm_public_ip_name }}"
         admin-username: "{{ bundle.parameters.vm_admin_username }}"
         admin-password: "{{ bundle.parameters.vm_admin_password }}"
 
@@ -159,74 +145,12 @@ uninstall:
       flags:
         s: "{{ bundle.credentials.subscription_id }}"
 
-  # TODO: We could just delete the entire resource group and eliminate the other steps below
-  #       But perhaps dangerous if pre-existing resource group (with other assets) supplied.
-  # - az:
-  #     description: "Delete the resource group to hold the Packer artifacts"
-  #     arguments:
-  #       - group
-  #       - delete
-  #     flags:
-  #       name: "{{ bundle.parameters.resource_group }}"
-  #       location: "{{ bundle.parameters.location }}"
-
   - az:
-      description: "Delete Packer Image KeyVault"
+      description: "Delete the resource group ({{ bundle.parameters.resource_group }}) holding the Packer artifacts"
       arguments:
-        - keyvault
+        - group
         - delete
+        - --yes
+        - --no-wait
       flags:
-        name: "{{ bundle.outputs.keyvault_name }}"
-        resource-group: "{{ bundle.parameters.resource_group }}"
-
-  - az:
-      description: "Delete Azure VM"
-      arguments:
-        - vm
-        - delete
-      flags:
-        name: "{{ bundle.parameters.vm_name }}"
-        resource-group: "{{ bundle.parameters.resource_group }}"
-
-  - az:
-      description: "Delete VM VNET"
-      arguments:
-        - network
-        - vnet
-        - delete
-      flags:
-        name: "{{ bundle.parameters.vm_vnet_name }}"
-        resource-group: "{{ bundle.parameters.resource_group }}"
-
-  # TODO: do we need to delete the vnet subnet if the vnet is deleted above?
-  # - az:
-  #     description: "Delete VM Subnet"
-  #     arguments:
-  #       - network
-  #       - vnet
-  #       - subnet
-  #       - delete
-  #     flags:
-  #       name: "{{ bundle.parameters.vm_subnet_name }}"
-  #       vnet-name: "{{ bundle.parameters.vm_vnet_name }}"
-  #       resource-group: "{{ bundle.parameters.resource_group }}"
-
-  - az:
-      description: "Delete VM NSG"
-      arguments:
-        - network
-        - nsg
-        - delete
-      flags:
-        name: "{{ bundle.parameters.vm_nsg_name }}"
-        resource-group: "{{ bundle.parameters.resource_group }}"
-  
-  - az:
-      description: "Delete VM Public IP"
-      arguments:
-        - network
-        - public-ip
-        - delete
-      flags:
-        name: "{{ bundle.parameters.vm_public_ip_name }}"
-        resource-group: "{{ bundle.parameters.resource_group }}"
+        name: "{{ bundle.parameters.resource_group }}"
