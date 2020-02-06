@@ -1,0 +1,21 @@
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://github.com/vdice/porter-packer</id>
+    <title>Porter Packer Mixin</title>
+    <updated>2020-02-06T17:11:46Z</updated>
+    <link rel="self" href="https://vdice.github.io/porter-packer/atom.xml"/>
+    <author>
+        <name>Vaughn Dice</name>
+        <uri>https://github.com/vdice/porter-packer</uri>
+    </author>
+    <category term="packer"/>
+    <entry>
+        <id>https://github.com/vdice/porter-packer/releases/download/v0.1.0/packer</id>
+        <title>packer @ v0.1.0</title>
+        <updated>2020-02-06T17:11:46Z</updated>
+        <category term="packer"/>
+        <content>v0.1.0</content>
+        <link rel="download" href="https://github.com/vdice/porter-packer/releases/download/v0.1.0/packer-darwin-amd64" />
+        <link rel="download" href="https://github.com/vdice/porter-packer/releases/download/v0.1.0/packer-linux-amd64" />
+        <link rel="download" href="https://github.com/vdice/porter-packer/releases/download/v0.1.0/packer-windows-amd64.exe" />
+    </entry>
+</feed>
