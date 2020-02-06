@@ -2,6 +2,8 @@ MIXIN = packer
 PKG = github.com/vdice/porter-$(MIXIN)
 SHELL = bash
 
+GO = GO111MODULE=on go
+
 PORTER_HOME ?= $(HOME)/.porter
 
 COMMIT ?= $(shell git rev-parse --short HEAD)
@@ -9,7 +11,7 @@ VERSION ?= $(shell git describe --tags 2> /dev/null || echo v0)
 PERMALINK ?= $(shell git describe --tags --exact-match &> /dev/null && echo latest || echo canary)
 
 LDFLAGS = -w -X $(PKG)/pkg.Version=$(VERSION) -X $(PKG)/pkg.Commit=$(COMMIT)
-XBUILD = CGO_ENABLED=0 go build -a -tags netgo -ldflags '$(LDFLAGS)'
+XBUILD = CGO_ENABLED=0 $(GO) build -a -tags netgo -ldflags '$(LDFLAGS)'
 BINDIR = bin/mixins/$(MIXIN)
 
 CLIENT_PLATFORM ?= $(shell go env GOOS)
@@ -34,19 +36,19 @@ build: build-client build-runtime clean-packr
 
 build-runtime: generate
 	mkdir -p $(BINDIR)
-	GOARCH=$(RUNTIME_ARCH) GOOS=$(RUNTIME_PLATFORM) go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(MIXIN)-runtime$(FILE_EXT) ./cmd/$(MIXIN)
+	GOARCH=$(RUNTIME_ARCH) GOOS=$(RUNTIME_PLATFORM) $(GO) build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(MIXIN)-runtime$(FILE_EXT) ./cmd/$(MIXIN)
 
 build-client: generate
 	mkdir -p $(BINDIR)
-	go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(MIXIN)$(FILE_EXT) ./cmd/$(MIXIN)
+	$(GO) build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(MIXIN)$(FILE_EXT) ./cmd/$(MIXIN)
 
 generate: packr2
-	go generate ./...
+	$(GO) generate ./...
 
 HAS_PACKR2 := $(shell command -v packr2)
 packr2:
 ifndef HAS_PACKR2
-	go get -u github.com/gobuffalo/packr/v2/packr2
+	$(GO) get -u github.com/gobuffalo/packr/v2/packr2
 endif
 
 xbuild-all:
@@ -61,47 +63,31 @@ $(BINDIR)/$(VERSION)/$(MIXIN)-$(CLIENT_PLATFORM)-$(CLIENT_ARCH)$(FILE_EXT):
 	mkdir -p $(dir $@)
 	GOOS=$(CLIENT_PLATFORM) GOARCH=$(CLIENT_ARCH) $(XBUILD) -o $@ ./cmd/$(MIXIN)
 
-verify: verify-vendor
-
-verify-vendor: clean-packr dep
-	dep check
-
-HAS_DEP := $(shell command -v dep)
-dep:
-ifndef HAS_DEP
-	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-endif
-	dep version
-
-vendor: dep
-	dep ensure
-
 test: test-unit
-	$(BINDIR)/$(MIXIN)$(FILE_EXT) version
 
 test-unit: build
-	go test ./...
+	$(GO) test ./...
 
 publish: bin/porter$(FILE_EXT)
 	# The following demonstrates how to publish a mixin. As an example, we show how to publish to azure.
 	# The porter mixins feed generate command is used to build an ATOM feed for sharing mixins once published
 
 	# AZURE_STORAGE_CONNECTION_STRING will be used for auth in the following commands
-	#if [[ "$(PERMALINK)" == "latest" ]]; then \
-	#	az storage blob upload-batch -d porter/mixins/$(MIXIN)/$(VERSION) -s $(BINDIR)/$(VERSION); \
-	#	az storage blob upload-batch -d porter/mixins/$(MIXIN)/$(PERMALINK) -s $(BINDIR)/$(VERSION); \
-	#else \
-	#	mv $(BINDIR)/$(VERSION) $(BINDIR)/$(PERMALINK); \
-	#	az storage blob upload-batch -d porter/mixins/$(MIXIN)/$(PERMALINK) -s $(BINDIR)/$(PERMALINK); \
-	#fi
+	# if [[ "$(PERMALINK)" == "latest" ]]; then \
+	# 	az storage blob upload-batch -d porter/mixins/$(MIXIN)/$(VERSION) -s $(BINDIR)/$(VERSION); \
+	# 	az storage blob upload-batch -d porter/mixins/$(MIXIN)/$(PERMALINK) -s $(BINDIR)/$(VERSION); \
+	# else \
+	# 	mv $(BINDIR)/$(VERSION) $(BINDIR)/$(PERMALINK); \
+	# 	az storage blob upload-batch -d porter/mixins/$(MIXIN)/$(PERMALINK) -s $(BINDIR)/$(PERMALINK); \
+	# fi
 
 	# Generate the mixin feed
-	#az storage blob download -c porter -n atom.xml -f bin/atom.xml
+	# az storage blob download -c porter -n atom.xml -f bin/atom.xml
 	bin/porter mixins feed generate -d bin/mixins -f bin/atom.xml -t build/atom-template.xml
-	#az storage blob upload -c porter -n atom.xml -f bin/atom.xml
+	# az storage blob upload -c porter -n atom.xml -f bin/atom.xml
 
 bin/porter$(FILE_EXT):
-	curl -fsSLo bin/porter$(FILE_EXT) https://cdn.deislabs.io/porter/canary/porter-$(CLIENT_PLATFORM)-$(CLIENT_ARCH)$(FILE_EXT)
+	curl -fsSLo bin/porter$(FILE_EXT) https://cdn.porter.sh/canary/porter-$(CLIENT_PLATFORM)-$(CLIENT_ARCH)$(FILE_EXT)
 	chmod +x bin/porter$(FILE_EXT)
 
 install:
@@ -113,4 +99,4 @@ clean: clean-packr
 	-rm -fr bin/
 
 clean-packr: packr2
-	cd pkg/packer && packr2 clean
+	cd pkg/$(MIXIN) && packr2 clean
