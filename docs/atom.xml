@@ -8,6 +8,17 @@
         <uri>https://github.com/vdice/porter-packer</uri>
     </author>
     <category term="packer"/>
+        <entry>
+        <id>https://github.com/vdice/porter-packer/releases/download/v0.2.0/packer</id>
+        <title>packer @ v0.2.0</title>
+        <updated>2020-02-06T17:38:24Z</updated>
+        <category term="packer"/>
+        <content>v0.2.0</content>
+        <link rel="download" href="https://github.com/vdice/porter-packer/releases/download/v0.2.0/packer-darwin-amd64" />
+        <link rel="download" href="https://github.com/vdice/porter-packer/releases/download/v0.2.0/packer-darwin-arm64" />
+        <link rel="download" href="https://github.com/vdice/porter-packer/releases/download/v0.2.0/packer-linux-amd64" />
+        <link rel="download" href="https://github.com/vdice/porter-packer/releases/download/v0.2.0/packer-windows-amd64.exe" />
+    </entry>
     <entry>
         <id>https://github.com/vdice/porter-packer/releases/download/v0.1.1/packer</id>
         <title>packer @ v0.1.1</title>
